@@ -394,7 +394,7 @@
 
   <script>
     // 💡 두 시트(MasterList / Responses) 구조를 반영한 Google Apps Script 배포 URL 설정
-    const GOOGLE_SHEETS_API_URL = "AKfycbzCYFDJlaF7OFwd3ekffKiyOmT5XvUjvffBQtzfF8uxeB7YMJi0pbFW_siBFN0LjvBt";
+    const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbzCYFDJlaF7OFwd3ekffKiyOmT5XvUjvffBQtzfF8uxeB7YMJi0pbFW_siBFN0LjvBt/exec";
 
     function sendToGoogleSheet(data) {
       if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) return;
@@ -453,7 +453,7 @@
 
     // 💡 두 개로 분리된 시트 구조에 맞춘 명단 불러오기 함수
     function loadAttendeesFromSheet() {
-      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("AKfycbzCYFDJlaF7OFwd3ekffKiyOmT5XvUjvffBQtzfF8uxeB7YMJi0pbFW_siBFN0LjvBt")) {
+      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("https://script.google.com/macros/s/AKfycbzCYFDJlaF7OFwd3ekffKiyOmT5XvUjvffBQtzfF8uxeB7YMJi0pbFW_siBFN0LjvBt/exec")) {
         updateUI();
         return;
       }
