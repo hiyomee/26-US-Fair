@@ -312,9 +312,22 @@
         </button>
       </section>
 
-      <section class="border-t pt-4 space-y-2">
+      <section class="border-t pt-4 space-y-3">
         <h3 class="text-sm font-bold">👥 사전 참석자 DB 관리</h3>
         
+        <!-- Google Sheets 바로가기 영역 -->
+        <div class="bg-pink-50 border border-pink-200 p-3 rounded-lg space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-pink-800">📊 Google Sheets 연동 관리</span>
+            <a href="https://script.google.com/macros/s/AKfycbzCYFDJlaF7OFwd3ekffKiyOmT5XvUjvffBQtzfF8uxeB7YMJi0pbFW_siBFN0LjvBt/exec" target="_blank" class="text-xs bg-pink-600 text-white px-2.5 py-1 rounded font-bold hover:bg-pink-700 transition">
+              구글 시트 바로가기 ↗
+            </a>
+          </div>
+          <p class="text-[11px] text-pink-700 leading-tight">
+            참석자 원본 명단 및 실시간 Response 데이터는 연동된 Google Apps Script를 통해 자동 수집됩니다.
+          </p>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
           <input type="text" id="reg-name" placeholder="이름 (예: 홍길동)" class="border p-1.5 rounded text-xs">
           <input type="text" id="reg-birth" placeholder="생년월일 6자리 (예: 980101)" maxlength="6" class="border p-1.5 rounded text-xs">
@@ -323,15 +336,7 @@
           <input type="text" id="reg-seat" placeholder="좌석번호 (예: A-12)" class="border p-1.5 rounded text-xs">
           <input type="text" id="reg-interview" placeholder="인터뷰 (예: 14:00 Room A)" class="border p-1.5 rounded text-xs">
         </div>
-        <button onclick="registerAttendee()" class="w-full bg-pink-600 text-white py-1.5 rounded text-xs font-bold hover:bg-pink-700">신규 등록</button>
-
-        <div class="bg-gray-50 border p-2.5 rounded text-xs space-y-1 mt-2">
-          <div class="flex justify-between items-center">
-            <span class="font-bold text-gray-700">📁 CSV 일괄 등록</span>
-            <button onclick="downloadCSVSample()" class="text-pink-600 underline">양식 다운로드</button>
-          </div>
-          <input type="file" id="csv-file-input" accept=".csv" onchange="importCSVAttendees(event)" class="block w-full text-xs text-gray-500">
-        </div>
+        <button onclick="registerAttendee()" class="w-full bg-pink-600 text-white py-1.5 rounded text-xs font-bold hover:bg-pink-700">신규 직접 등록</button>
 
         <div class="max-h-56 overflow-y-auto border rounded p-2 bg-gray-50">
           <table class="w-full text-xs text-left">
@@ -451,9 +456,8 @@
       loadAttendeesFromSheet(); // 구글 시트(MasterList) 데이터 연동 호출
     };
 
-    // 💡 두 개로 분리된 시트 구조에 맞춘 명단 불러오기 함수
     function loadAttendeesFromSheet() {
-      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("https://script.google.com/macros/s/AKfycbzCYFDJlaF7OFwd3ekffKiyOmT5XvUjvffBQtzfF8uxeB7YMJi0pbFW_siBFN0LjvBt/exec")) {
+      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) {
         updateUI();
         return;
       }
@@ -464,7 +468,6 @@
           if (data && Array.isArray(data.attendees)) {
             state.registeredAttendees = data.attendees;
             
-            // Responses 시트의 기록을 매핑하여 최신 상태 동기화
             if (Array.isArray(data.responses)) {
               data.responses.forEach(resp => {
                 const target = state.registeredAttendees.find(a => a.name === resp.name && String(a.birth) === String(resp.birth));
@@ -1000,49 +1003,6 @@
       state.registeredAttendees.splice(index, 1);
       localStorage.setItem('registeredAttendees', JSON.stringify(state.registeredAttendees));
       updateAdminUI();
-    }
-
-    function importCSVAttendees(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const lines = e.target.result.split(/\r\n|\n/);
-        let addedCount = 0;
-        lines.forEach((line, index) => {
-          if (!line.trim()) return;
-          const cols = line.split(',').map(col => col.replace(/"/g, '').trim());
-          if (index === 0 && (cols[0].includes('이름') || cols[0].toLowerCase().includes('name'))) return;
-          if (cols[0] && cols[1] && cols[1].length === 6) {
-            if (!state.registeredAttendees.some(a => a.name === cols[0] && a.birth === cols[1])) {
-              state.registeredAttendees.push({
-                name: cols[0],
-                birth: cols[1],
-                affiliation: cols[2] || '',
-                job: cols[3] || '',
-                checkedIn: false,
-                seat: cols[4] || '',
-                interview: cols[5] || '',
-                networking: null
-              });
-              addedCount++;
-            }
-          }
-        });
-        localStorage.setItem('registeredAttendees', JSON.stringify(state.registeredAttendees));
-        alert(`${addedCount}명 등록 완료`);
-        updateAdminUI();
-      };
-      reader.readAsText(file, "UTF-8");
-    }
-
-    function downloadCSVSample() {
-      const csvContent = "\uFEFF이름,생년월일,소속,직무,좌석번호,인터뷰일정\n이순신,950301,스탠포드대,AI Researcher,A-01,14:00 (면접실 1)\n강감찬,011225,카네기멜론대,Software Engineer,B-03,15:30 (면접실 2)\n";
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "참석자명단_양식.csv";
-      link.click();
     }
 
     function exportCSV(type) {
