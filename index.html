@@ -466,11 +466,19 @@
         .then(res => res.json())
         .then(data => {
           if (data && Array.isArray(data.attendees)) {
-            state.registeredAttendees = data.attendees;
+            // 시트에서 전달된 생년월일/이름 문자열 타입 보장
+            state.registeredAttendees = data.attendees.map(a => ({
+              ...a,
+              name: String(a.name || '').trim(),
+              birth: String(a.birth || '').trim()
+            }));
             
             if (Array.isArray(data.responses)) {
               data.responses.forEach(resp => {
-                const target = state.registeredAttendees.find(a => a.name === resp.name && String(a.birth) === String(resp.birth));
+                const target = state.registeredAttendees.find(a => 
+                  a.name.trim() === String(resp.name || '').trim() && 
+                  String(a.birth).trim() === String(resp.birth || '').trim()
+                );
                 if (target) {
                   if (resp.type === 'checkin') target.checkedIn = true;
                   if (resp.type === 'networking') target.networking = (resp.detail === '참석');
@@ -573,7 +581,8 @@
     function getCurrentUserData() {
       if (!state.currentUser) return null;
       return state.registeredAttendees.find(
-        a => a.name === state.currentUser.name && a.birth === state.currentUser.birth
+        a => a.name.trim() === String(state.currentUser.name).trim() && 
+             String(a.birth).trim() === String(state.currentUser.birth).trim()
       );
     }
 
@@ -844,7 +853,10 @@
         return;
       }
 
-      const targetIndex = state.registeredAttendees.findIndex(a => a.name === name && a.birth === birth);
+      // 💡 문자열 타입 강제 변환(String) 및 공백 제거(trim) 적용
+      const targetIndex = state.registeredAttendees.findIndex(
+        a => a.name.trim() === name && String(a.birth).trim() === birth
+      );
 
       if (targetIndex !== -1) {
         if (state.registeredAttendees[targetIndex].checkedIn) {
@@ -900,7 +912,8 @@
       }
 
       const userIndex = state.registeredAttendees.findIndex(
-        a => a.name === state.currentUser.name && a.birth === state.currentUser.birth
+        a => a.name.trim() === String(state.currentUser.name).trim() && 
+             String(a.birth).trim() === String(state.currentUser.birth).trim()
       );
 
       if (userIndex !== -1) {
