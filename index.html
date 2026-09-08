@@ -85,11 +85,11 @@
           <div id="main-status-mission" class="text-xs">0 / 2 미션 완료</div>
         </button>
 
-        <!-- 6. 실시간 Q&A -->
+        <!-- 6. 참석 코멘트 남기기 -->
         <button id="card-qna" onclick="navigateTo('page-qna')" class="p-4 border rounded-xl transition text-left space-y-1">
           <div class="text-2xl">💬</div>
-          <div class="font-bold text-sm">실시간 Q&A</div>
-          <div id="main-status-qna" class="text-xs">질문 등록하기</div>
+          <div class="font-bold text-sm">US Fair 참석 코멘트 남기기</div>
+          <div id="main-status-qna" class="text-xs">코멘트 등록하기</div>
         </button>
 
         <!-- 7. 후기 설문조사 -->
@@ -99,10 +99,10 @@
           <div id="main-status-survey" class="text-xs">만족도 조사 작성</div>
         </button>
 
-        <!-- 8. After NW -->
+        <!-- 8. 자율 네트워킹 참가 신청 -->
         <button id="card-networking" onclick="navigateTo('page-networking')" class="p-4 border rounded-xl transition text-left space-y-1">
           <div class="text-2xl">🤝</div>
-          <div class="font-bold text-sm">After NW</div>
+          <div class="font-bold text-sm">자율 네트워킹 참가 신청</div>
           <div id="main-status-networking" class="text-xs">참석 여부 선택</div>
         </button>
       </div>
@@ -159,7 +159,7 @@
           <p class="font-bold text-xs text-amber-900">🏨 숙소 이용 안내</p>
           <p class="text-xs text-amber-800 leading-relaxed">
             숙소 체크인 시, 본인 성명 및 신분증 제출을 통해 직접 체크인 하시면 됩니다.<br>
-            <span class="text-red-600 font-semibold">※ 객실 내 Bar 이용시에는 별도 요금이 개별 청구되오니 유의 부탁드립니다.</span>
+            <span class="text-red-600 font-semibold">※ 조식 불포함 객실로 조식 이용시 개별청구되오니 유의 부탁드립니다.(별도 Gift Card 제공예정)</span>
           </p>
           
           <div class="pt-2 border-t border-amber-200">
@@ -246,11 +246,11 @@
       </div>
     </div>
 
-    <!-- ==================== [PAGE 3] 실시간 Q&A 페이지 ==================== -->
+    <!-- ==================== [PAGE 3] 참석 코멘트 남기기 ==================== -->
     <div id="page-qna" class="page-view hidden space-y-4">
-      <h2 class="text-lg font-bold text-gray-800 border-b pb-2">3. 실시간 Q&A</h2>
+      <h2 class="text-lg font-bold text-gray-800 border-b pb-2">3. 참석 코멘트 남기기</h2>
       <div class="flex gap-2">
-        <input type="text" id="qna-input" class="border p-2 flex-1 rounded text-sm" placeholder="질문을 입력하세요">
+        <input type="text" id="qna-input" class="border p-2 flex-1 rounded text-sm" placeholder="US Fair 참석 전 기대사항 및 자유로운 코멘트를 남기세요">
         <button onclick="addQuestion()" class="bg-pink-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-pink-700">등록</button>
       </div>
       <ul id="qna-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
@@ -258,8 +258,8 @@
 
     <!-- ==================== [PAGE 4] 설문조사 페이지 ==================== -->
     <div id="page-survey" class="page-view hidden space-y-4">
-      <h2 class="text-lg font-bold text-gray-800 border-b pb-2">4. 후기 설문조사</h2>
-      <p class="text-xs text-gray-500">행사 참여 소감을 남겨주시면 큰 도움이 됩니다.</p>
+      <h2 class="text-lg font-bold text-gray-800 border-b pb-2">4. 참석후기 설문조사</h2>
+      <p class="text-xs text-gray-500">더 나은 행사를 위하여 참석후기 설문조사를 진행해주시면 큰 도움이 됩니다.</p>
       
       <div class="rounded-lg overflow-hidden border min-h-[450px]">
         <div data-tf-live="01M18RXWEBK0CTE9NTWNXNBNEH"></div>
@@ -275,10 +275,10 @@
       </div>
     </div>
 
-    <!-- ==================== [PAGE 5] After NW 페이지 ==================== -->
+    <!-- ==================== [PAGE 5] 자율 네트워킹 신청페이지 ==================== -->
     <div id="page-networking" class="page-view hidden space-y-4">
       <h2 class="text-lg font-bold text-gray-800 border-b pb-2">5. After NW</h2>
-      <p class="text-xs text-gray-500">After NW 참석 여부를 선택해 주세요.</p>
+      <p class="text-xs text-gray-500">자율 네트워킹 참석 여부를 선택해 주세요.</p>
       <div class="p-4 bg-gray-50 border rounded-lg space-y-3">
         <label class="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-100">
           <input type="radio" name="networking-choice" value="true" onchange="setNetworkingOption(true)" class="h-4 w-4 text-pink-600">
