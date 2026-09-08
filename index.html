@@ -277,7 +277,7 @@
 
     <!-- ==================== [PAGE 5] 자율 네트워킹 신청페이지 ==================== -->
     <div id="page-networking" class="page-view hidden space-y-4">
-      <h2 class="text-lg font-bold text-gray-800 border-b pb-2">5. After NW</h2>
+      <h2 class="text-lg font-bold text-gray-800 border-b pb-2">5. 자율 네트워킹</h2>
       <p class="text-xs text-gray-500">자율 네트워킹 참석 여부를 선택해 주세요.</p>
       <div class="p-4 bg-gray-50 border rounded-lg space-y-3">
         <label class="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-100">
@@ -301,7 +301,7 @@
       <section class="grid grid-cols-2 gap-2 text-xs">
         <div class="bg-gray-50 p-2.5 border rounded">등록 명단: <b id="admin-total-registered">0명</b></div>
         <div class="bg-gray-50 p-2.5 border rounded">체크인 인원: <b id="admin-checkedin-count">0명</b></div>
-        <div class="bg-gray-50 p-2.5 border rounded col-span-2">🤝 After NW 현황: <b id="admin-networking-status" class="text-pink-600">참석 0명 / 미참석 0명</b></div>
+        <div class="bg-gray-50 p-2.5 border rounded col-span-2">🤝 자율 네트워킹 현황: <b id="admin-networking-status" class="text-pink-600">참석 0명 / 미참석 0명</b></div>
       </section>
 
       <section class="border-t pt-4 space-y-2">
@@ -696,7 +696,7 @@
       }
 
       const userQuestions = state.questions.length;
-      document.getElementById('main-status-qna').innerText = userQuestions > 0 ? `${userQuestions}개 질문 등록됨` : '질문 등록하기';
+      document.getElementById('main-status-qna').innerText = userQuestions > 0 ? `${userQuestions}개 코멘트 등록됨` : '코멘트 등록하기';
       setTabStyle('card-qna', userQuestions > 0);
 
       document.getElementById('main-status-survey').innerText = state.hasSurveyed ? '작성 완료 ✅' : '만족도 조사 작성';
@@ -924,7 +924,7 @@
           detail: value ? "참석" : "미참석"
         });
 
-        alert("After NW 참석 여부가 정상적으로 제출되었습니다.");
+        alert("자율 네트워킹 참석 여부가 정상적으로 제출되었습니다.");
         updateUI();
       }
     }
@@ -1019,7 +1019,7 @@
       let csvContent = "\uFEFF";
       let fileName = "";
       if (type === 'attendees') {
-        csvContent += "이름,생년월일,소속,직무,체크인여부,좌석번호,인터뷰일정,After NW 참석여부\n";
+        csvContent += "이름,생년월일,소속,직무,체크인여부,좌석번호,인터뷰일정,자율 네트워킹 참석여부\n";
         state.registeredAttendees.forEach(a => {
           let nwText = '미응답';
           if (a.networking === true) nwText = '참석';
@@ -1029,7 +1029,7 @@
         });
         fileName = "참석자명단_체크인현황.csv";
       } else if (type === 'qna') {
-        csvContent += "등록시간,질문내용\n";
+        csvContent += "등록시간,코멘트 내용\n";
         state.questions.forEach(q => { csvContent += `"${q.time}","${q.text.replace(/"/g, '""')}"\n`; });
         fileName = "실시간_QA_목록.csv";
       }
