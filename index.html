@@ -144,7 +144,7 @@
       <div class="space-y-3 text-sm text-gray-700">
         
         <div class="w-full h-48 rounded-xl overflow-hidden border shadow-inner">
-          <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2970.251432467713!2d-87.62423632351572!3d41.88744946482814!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x880e2ca924587447%3A0x880c1ae8574967ef!2z7ZWY7JaP7Yq4IOumrOygoOyLnCDsi5zsubTqs6A!5e0!3m2!1sko!2skr!4v1788140883587!5m2!1sko!2skr" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          <iframe src="https://www..com/maps/embed?pb=!1m18!1m12!1m3!1d2970.251432467713!2d-87.62423632351572!3d41.88744946482814!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x880e2ca924587447%3A0x880c1ae8574967ef!2z7ZWY7JaP7Yq4IOumrOygoOyLnCDsi5zsubTqs6A!5e0!3m2!1sko!2skr!4v1788140883587!5m2!1sko!2skr" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
         </div>
 
         <div class="bg-gray-50 p-4 rounded-xl border space-y-2">
@@ -319,12 +319,12 @@
         <div class="bg-pink-50 border border-pink-200 p-3 rounded-lg space-y-2">
           <div class="flex justify-between items-center">
             <span class="text-xs font-bold text-pink-800">📊 Google Sheets 연동 관리</span>
-            <a href="https://script.google.com/macros/s/AKfycby1SlGp-4FGSoJxlFfPoQ4CN8bBfyqrQlav4E8-y51_BE4nIzLMjKFlx45AeH3mCEgh/exec" target="_blank" class="text-xs bg-pink-600 text-white px-2.5 py-1 rounded font-bold hover:bg-pink-700 transition">
+            <a href="https://script.google.com/macros/s/AKfycbxUpgkbpUcqnNygHLUb63LW0sFaAOh94-AQoiA1FdRNwtq7S633UqIutdmo8okM6fNV/exec" target="_blank" class="text-xs bg-pink-600 text-white px-2.5 py-1 rounded font-bold hover:bg-pink-700 transition">
               구글 시트 바로가기 ↗
             </a>
           </div>
           <p class="text-[11px] text-pink-700 leading-tight">
-            참석자 원본 명단 및 실시간 Response 데이터는 연동된 Google Apps Script를 통해 자동 수집됩니다.
+            참석자 원본 명단 및 실시간 Response 데이터는 연동된  Apps Script를 통해 자동 수집됩니다.
           </p>
         </div>
 
@@ -333,8 +333,8 @@
           <input type="text" id="reg-birth" placeholder="생년월일 6자리 (예: 980101)" maxlength="6" class="border p-1.5 rounded text-xs">
           <input type="text" id="reg-affiliation" placeholder="소속 (예: 스탠포드대)" class="border p-1.5 rounded text-xs">
           <input type="text" id="reg-job" placeholder="직무 (예: AI Researcher)" class="border p-1.5 rounded text-xs">
-          <input type="text" id="reg-interview" placeholder="인터뷰 (예: 14:00 Room A)" class="border p-1.5 rounded text-xs">
           <input type="text" id="reg-seat" placeholder="좌석번호 (예: A-12)" class="border p-1.5 rounded text-xs">
+          <input type="text" id="reg-interview" placeholder="인터뷰 (예: 14:00 Room A)" class="border p-1.5 rounded text-xs">
         </div>
         <button onclick="registerAttendee()" class="w-full bg-pink-600 text-white py-1.5 rounded text-xs font-bold hover:bg-pink-700">신규 직접 등록</button>
 
@@ -345,7 +345,7 @@
                 <th class="pb-1">이름</th>
                 <th class="pb-1">생년월일</th>
                 <th class="pb-1">소속/직무</th>
-                <th class="pb-1">일정/좌석</th>
+                <th class="pb-1">좌석/일정</th>
                 <th class="pb-1 text-right">삭제</th>
               </tr>
             </thead>
@@ -398,12 +398,12 @@
   <script src="https://embed.typeform.com/next/embed.js"></script>
 
   <script>
-    const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycby1SlGp-4FGSoJxlFfPoQ4CN8bBfyqrQlav4E8-y51_BE4nIzLMjKFlx45AeH3mCEgh/exec";
+    const _SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbxUpgkbpUcqnNygHLUb63LW0sFaAOh94-AQoiA1FdRNwtq7S633UqIutdmo8okM6fNV/exec";
 
-    function sendToGoogleSheet(data) {
-      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) return;
+    function sendToSheet(data) {
+      if (!_SHEETS_API_URL || _SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) return;
 
-      fetch(GOOGLE_SHEETS_API_URL, {
+      fetch(_SHEETS_API_URL, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
@@ -436,8 +436,8 @@
     ];
 
     const defaultRegisteredAttendees = [
-      { name: "홍길동", birth: "980101", affiliation: "스탠포드대", job: "AI Researcher", checkedIn: false, interview: "14:00 (면접실 1)", seat: "A-12", networking: null },
-      { name: "김개발", birth: "000515", affiliation: "카네기멜론대", job: "Software Engineer", checkedIn: false, interview: "15:30 (면접실 2)", seat: "B-05", networking: null }
+      { name: "홍길동", birth: "980101", affiliation: "스탠포드대", job: "AI Researcher", checkedIn: false, seat: "A-12", interview: "14:00 (면접실 1)", networking: null },
+      { name: "김개발", birth: "000515", affiliation: "카네기멜론대", job: "Software Engineer", checkedIn: false, seat: "B-05", interview: "15:30 (면접실 2)", networking: null }
     ];
 
     let state = {
@@ -456,12 +456,12 @@
     };
 
     function loadAttendeesFromSheet() {
-      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) {
+      if (!_SHEETS_API_URL || _SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) {
         updateUI();
         return;
       }
 
-      fetch(GOOGLE_SHEETS_API_URL)
+      fetch(_SHEETS_API_URL)
         .then(res => res.json())
         .then(data => {
           if (data && Array.isArray(data.attendees)) {
@@ -807,7 +807,7 @@
           state.completedPosters.push(id);
           localStorage.setItem('completedPosters', JSON.stringify(state.completedPosters));
           
-          sendToGoogleSheet({
+          sendToSheet({
             type: "mission_poster",
             name: state.currentUser ? state.currentUser.name : "미체크인",
             birth: state.currentUser ? state.currentUser.birth : "-",
@@ -831,7 +831,7 @@
       state.isSubscribed = true;
       localStorage.setItem('isSubscribed', 'true');
 
-      sendToGoogleSheet({
+      sendToSheet({
         type: "mission_subscribe",
         name: state.currentUser ? state.currentUser.name : "미체크인",
         birth: state.currentUser ? state.currentUser.birth : "-",
@@ -867,7 +867,7 @@
         localStorage.setItem('registeredAttendees', JSON.stringify(state.registeredAttendees));
         localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
 
-        sendToGoogleSheet({
+        sendToSheet({
           type: "checkin",
           name: name,
           birth: birth,
@@ -891,7 +891,7 @@
       state.questions.unshift(newQ);
       localStorage.setItem('questions', JSON.stringify(state.questions));
 
-      sendToGoogleSheet({
+      sendToSheet({
         type: "qna",
         name: state.currentUser ? state.currentUser.name : "익명",
         birth: state.currentUser ? state.currentUser.birth : "-",
@@ -917,7 +917,7 @@
         state.registeredAttendees[userIndex].networking = value;
         localStorage.setItem('registeredAttendees', JSON.stringify(state.registeredAttendees));
 
-        sendToGoogleSheet({
+        sendToSheet({
           type: "networking",
           name: state.currentUser.name,
           birth: state.currentUser.birth,
@@ -934,7 +934,7 @@
         state.hasSurveyed = true;
         localStorage.setItem('hasSurveyed', 'true');
 
-        sendToGoogleSheet({
+        sendToSheet({
           type: "survey",
           name: state.currentUser ? state.currentUser.name : "익명",
           birth: state.currentUser ? state.currentUser.birth : "-",
@@ -966,7 +966,7 @@
           <td class="py-1 font-bold">${attendee.name}</td>
           <td class="py-1 text-gray-500">${attendee.birth}</td>
           <td class="py-1 text-gray-700">${attendee.affiliation || '-'}<br><span class="text-[10px] text-gray-400">${attendee.job || '-'}</span></td>
-          <td class="py-1 text-gray-700">${attendee.interview || '-'}<br><span class="text-[10px] text-gray-400">${attendee.seat || '-'}</span></td>
+          <td class="py-1 text-gray-700">${attendee.seat || '-'}<br><span class="text-[10px] text-gray-400">${attendee.interview || '-'}</span></td>
           <td class="py-1 text-right">
             <button onclick="deleteRegisteredAttendee(${idx})" class="text-red-500 text-xs hover:underline">삭제</button>
           </td>
@@ -980,8 +980,8 @@
       const birth = document.getElementById('reg-birth').value.trim();
       const affiliation = document.getElementById('reg-affiliation').value.trim();
       const job = document.getElementById('reg-job').value.trim();
-      const interview = document.getElementById('reg-interview').value.trim();
       const seat = document.getElementById('reg-seat').value.trim();
+      const interview = document.getElementById('reg-interview').value.trim();
 
       if (!name || birth.length !== 6) {
         alert("이름과 올바른 생년월일 6자리를 입력해 주세요.");
@@ -994,8 +994,8 @@
         affiliation: affiliation || '',
         job: job || '',
         checkedIn: false,
-        interview: interview || '',
         seat: seat || '',
+        interview: interview || '',
         networking: null
       });
 
@@ -1004,8 +1004,8 @@
       document.getElementById('reg-birth').value = '';
       document.getElementById('reg-affiliation').value = '';
       document.getElementById('reg-job').value = '';
-      document.getElementById('reg-interview').value = '';
       document.getElementById('reg-seat').value = '';
+      document.getElementById('reg-interview').value = '';
       updateAdminUI();
     }
 
@@ -1019,13 +1019,13 @@
       let csvContent = "\uFEFF";
       let fileName = "";
       if (type === 'attendees') {
-        csvContent += "이름,생년월일,소속,직무,체크인여부,인터뷰일정,좌석번호,After NW 참석여부\n";
+        csvContent += "이름,생년월일,소속,직무,체크인여부,좌석번호,인터뷰일정,After NW 참석여부\n";
         state.registeredAttendees.forEach(a => {
           let nwText = '미응답';
           if (a.networking === true) nwText = '참석';
           if (a.networking === false) nwText = '미참석';
 
-          csvContent += `"${a.name}","${a.birth}","${a.affiliation || ''}","${a.job || ''}","${a.checkedIn ? '완료' : '미완료'}","${a.interview || ''}","${a.seat || ''}","${nwText}"\n`;
+          csvContent += `"${a.name}","${a.birth}","${a.affiliation || ''}","${a.job || ''}","${a.checkedIn ? '완료' : '미완료'}","${a.seat || ''}","${a.interview || ''}","${nwText}"\n`;
         });
         fileName = "참석자명단_체크인현황.csv";
       } else if (type === 'qna') {
@@ -1118,7 +1118,7 @@
           winnerName.innerText = `🎊 ${finalWinner.name} 님`;
           statusText.innerText = "🏆 축하합니다! 당첨되었습니다!";
 
-          sendToGoogleSheet({
+          sendToSheet({
             type: "raffle_winner",
             name: finalWinner.name,
             birth: finalWinner.birth,
