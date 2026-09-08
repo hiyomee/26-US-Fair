@@ -150,7 +150,7 @@
 
   <script>
     // ⚠️ 웹앱 배포 URL 입력 (Google Apps Script 배포 URL)
-    const GOOGLE_SHEETS_API_URL = "YOUR_DEPLOYED_SCRIPT_URL_HERE";
+    const GOOGLE_SHEETS_API_URL = "AKfycbyBPP4l0CzqndAkaz1U51HU-MZ1LkQDq-Z5mZ6y0Y4tjtt-SzvHmdZ8VnTzun8WmUzr";
 
     // 앱 내부 상태 관리
     let state = {
@@ -187,7 +187,7 @@
 
     // 구글 시트 API 전송 공통 함수
     function sendToGoogleSheet(payload) {
-      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) {
+      if (!GOOGLE_SHEETS_API_URL || GOOGLE_SHEETS_API_URL.includes("AKfycbyBPP4l0CzqndAkaz1U51HU-MZ1LkQDq-Z5mZ6y0Y4tjtt-SzvHmdZ8VnTzun8WmUzr")) {
         console.warn("구글 시트 API URL이 설정되지 않았습니다.");
         return;
       }
