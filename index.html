@@ -462,7 +462,10 @@
       isSubscribed: localStorage.getItem('isSubscribed') === 'true',
       questions: JSON.parse(localStorage.getItem('questions') || '[]'),
       hasSurveyed: localStorage.getItem('hasSurveyed') === 'true',
-      isNoticeAgreed: localStorage.getItem('isNoticeAgreed') === 'true'
+      isNoticeAgreed: localStorage.getItem('isNoticeAgreed') === 'true',
+      // 시트에서 내려온 전체 응답 로그. 관리자 추첨/코멘트 집계는 localStorage가 아니라
+      // 이 값을 참조해야 모든 참석자의 미션·설문·코멘트를 반영할 수 있습니다.
+      sheetResponses: []
     };
 
     window.onload = function() {
@@ -486,6 +489,8 @@
               birth: String(a.birth || '').trim()
             }));
             
+            state.sheetResponses = Array.isArray(data.responses) ? data.responses : [];
+
             if (Array.isArray(data.responses)) {
               const me = state.currentUser;
               data.responses.forEach(resp => {
@@ -1085,8 +1090,23 @@
         });
         fileName = "참석자명단_체크인현황.csv";
       } else if (type === 'qna') {
-        csvContent += "등록시간,코멘트 내용\n";
-        state.questions.forEach(q => { csvContent += `"${q.time}","${q.text.replace(/"/g, '""')}"\n`; });
+        // 기존에는 관리자 기기의 localStorage(state.questions)만 내보내 다른 참석자
+        // 코멘트가 전혀 포함되지 않았습니다. 시트 응답 로그의 qna 전체를 내보냅니다.
+        csvContent += "등록시간,이름,코멘트 내용\n";
+        const qnaRows = (state.sheetResponses || []).filter(r => r.type === 'qna');
+        if (qnaRows.length === 0) {
+          // 시트 응답을 아직 불러오지 못한 경우에만 로컬 코멘트로 대체
+          state.questions.forEach(q => {
+            csvContent += `"${q.time}","","${String(q.text).replace(/"/g, '""')}"\n`;
+          });
+        } else {
+          qnaRows.forEach(r => {
+            const t = String(r.timestamp || '').replace(/"/g, '""');
+            const name = String(r.name || '').replace(/"/g, '""');
+            const text = String(r.detail || '').replace(/"/g, '""');
+            csvContent += `"${t}","${name}","${text}"\n`;
+          });
+        }
         fileName = "실시간_QA_목록.csv";
       }
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1099,7 +1119,7 @@
     function resetAllData() {
       if (confirm("모든 데이터를 초기화하시겠습니까?")) {
         localStorage.clear();
-        state = { registeredAttendees: defaultRegisteredAttendees, currentUser: null, completedPosters: [], isSubscribed: false, questions: [], hasSurveyed: false, isNoticeAgreed: false };
+        state = { registeredAttendees: defaultRegisteredAttendees, currentUser: null, completedPosters: [], isSubscribed: false, questions: [], hasSurveyed: false, isNoticeAgreed: false, sheetResponses: [] };
         alert('초기화되었습니다.');
         updateAdminUI();
       }
@@ -1108,17 +1128,35 @@
     let eligibleCandidates = [];
     let raffleTimer = null;
 
-    function openRaffleModal() {
-      const isPosterDone = state.completedPosters.length >= 4;
-      const isSubscribeDone = state.isSubscribed;
-      const isSurveyDone = state.hasSurveyed;
-
-      const isAllConditionsMet = isPosterDone && isSubscribeDone && isSurveyDone;
-
-      eligibleCandidates = state.registeredAttendees.filter(a => {
-        if (!a.checkedIn) return false;
-        return isAllConditionsMet;
+    // 특정 참석자의 미션/설문 완료 여부를 시트 응답 로그에서 재구성합니다.
+    // (기존 추첨은 관리자 기기의 localStorage 상태를 모든 참석자에 그대로 적용해
+    //  실제 완수자와 무관하게 동작했습니다.)
+    function getAttendeeProgress(a) {
+      const posters = new Set();
+      let subscribed = false, surveyed = false;
+      (state.sheetResponses || []).forEach(r => {
+        if (String(r.name || '').trim() !== a.name.trim()) return;
+        if (birthKey(r.birth) !== birthKey(a.birth)) return;
+        if (r.type === 'mission_poster') {
+          const m = String(r.detail || '').match(/포스터\s*(\d+)/);
+          if (m) posters.add(Number(m[1]));
+        }
+        if (r.type === 'mission_subscribe') subscribed = true;
+        if (r.type === 'survey') surveyed = true;
       });
+      return {
+        posterDone: posters.size >= 4,
+        subscribed,
+        surveyed,
+        allDone: posters.size >= 4 && subscribed && surveyed
+      };
+    }
+
+    function openRaffleModal() {
+      // 각 참석자별로 체크인 + 미션 2종 + 설문 완료 여부를 개별 판정합니다.
+      eligibleCandidates = state.registeredAttendees.filter(a =>
+        a.checkedIn && getAttendeeProgress(a).allDone
+      );
 
       const modal = document.getElementById('raffle-modal');
       const countText = document.getElementById('raffle-eligible-count');
