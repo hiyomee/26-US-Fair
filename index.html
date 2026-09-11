@@ -400,7 +400,17 @@
   <script>
     const _SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbxUpgkbpUcqnNygHLUb63LW0sFaAOh94-AQoiA1FdRNwtq7S633UqIutdmo8okM6fNV/exec";
 
-    function sendToSheet(data) {
+    // 생년월일(birth)은 시트/응답 저장 과정에서 숫자로 변환되어 앞자리 0이 사라집니다.
+    // (예: "050915" -> "50915", "000205" -> "205") 모든 (이름, 생년월일) 비교는
+    // 반드시 이 헬퍼로 정규화한 뒤 비교해야 매칭이 깨지지 않습니다.
+    function birthKey(b) {
+      return String(b == null ? '' : b).trim().replace(/\D/g, '').padStart(6, '0');
+    }
+
+    // no-cors 응답은 본문을 읽을 수 없어 서버 오류를 감지할 수 없습니다.
+    // 전송이 조용히 실패하면 새로고침 때 상태가 사라지므로, 네트워크 오류 시
+    // 몇 차례 재시도해 유실 가능성을 줄입니다. (완전한 해결은 백엔드 CORS 필요)
+    function sendToSheet(data, attempt = 0) {
       if (!_SHEETS_API_URL || _SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) return;
 
       fetch(_SHEETS_API_URL, {
@@ -408,7 +418,12 @@
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
-      }).catch(err => console.error("Sheet 전송 실패:", err));
+      }).catch(err => {
+        console.error(`Sheet 전송 실패 (시도 ${attempt + 1}):`, err);
+        if (attempt < 2) {
+          setTimeout(() => sendToSheet(data, attempt + 1), 1000 * (attempt + 1));
+        }
+      });
     }
 
     let titleClickCount = 0;
@@ -472,17 +487,45 @@
             }));
             
             if (Array.isArray(data.responses)) {
+              const me = state.currentUser;
               data.responses.forEach(resp => {
-                const target = state.registeredAttendees.find(a => 
-                  a.name.trim() === String(resp.name || '').trim() && 
-                  String(a.birth).trim() === String(resp.birth || '').trim()
+                const target = state.registeredAttendees.find(a =>
+                  a.name.trim() === String(resp.name || '').trim() &&
+                  birthKey(a.birth) === birthKey(resp.birth)
                 );
                 if (target) {
                   if (resp.type === 'checkin') target.checkedIn = true;
                   if (resp.type === 'networking') target.networking = (resp.detail === '참석');
                 }
+
+                // 미션/설문/구독 상태는 그동안 localStorage에만 저장되어 기기를 바꾸면
+                // 초기화됐습니다. 시트에 기록된 본인 응답을 다시 반영해 기기 간에도 유지합니다.
+                if (me && resp.name && me.name.trim() === String(resp.name).trim()
+                    && birthKey(me.birth) === birthKey(resp.birth)) {
+                  if (resp.type === 'mission_subscribe') {
+                    state.isSubscribed = true;
+                    localStorage.setItem('isSubscribed', 'true');
+                  }
+                  if (resp.type === 'survey') {
+                    state.hasSurveyed = true;
+                    localStorage.setItem('hasSurveyed', 'true');
+                  }
+                  if (resp.type === 'mission_poster') {
+                    const m = String(resp.detail || '').match(/포스터\s*(\d+)/);
+                    const pid = m ? Number(m[1]) : null;
+                    if (pid && !state.completedPosters.includes(pid)) {
+                      state.completedPosters.push(pid);
+                      localStorage.setItem('completedPosters', JSON.stringify(state.completedPosters));
+                    }
+                  }
+                }
               });
             }
+
+            // 생년월일이 수정되면(예: 오등록 정정) localStorage의 currentUser와
+            // 명단이 더 이상 일치하지 않아 로그아웃된 것처럼 보입니다.
+            // 이름이 유일하게 일치하면 명단의 생년월일로 currentUser를 갱신합니다.
+            migrateCurrentUser();
           }
           updateUI();
         })
@@ -579,9 +622,22 @@
     function getCurrentUserData() {
       if (!state.currentUser) return null;
       return state.registeredAttendees.find(
-        a => a.name.trim() === String(state.currentUser.name).trim() && 
-             String(a.birth).trim() === String(state.currentUser.birth).trim()
+        a => a.name.trim() === String(state.currentUser.name).trim() &&
+             birthKey(a.birth) === birthKey(state.currentUser.birth)
       );
+    }
+
+    // 명단의 생년월일이 정정되면 저장된 currentUser와 매칭이 끊깁니다.
+    // 정확히 일치하는 사람이 없고 이름이 유일하게 일치하면 명단 값으로 갱신합니다.
+    function migrateCurrentUser() {
+      if (!state.currentUser) return;
+      if (getCurrentUserData()) return; // 이미 매칭되면 그대로 둠
+      const name = String(state.currentUser.name).trim();
+      const sameName = state.registeredAttendees.filter(a => a.name.trim() === name);
+      if (sameName.length === 1) {
+        state.currentUser = { name: sameName[0].name.trim(), birth: birthKey(sameName[0].birth) };
+        localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+      }
     }
 
     function toggleNoticeAgreement() {
@@ -852,7 +908,7 @@
       }
 
       const targetIndex = state.registeredAttendees.findIndex(
-        a => a.name.trim() === name && String(a.birth).trim() === birth
+        a => a.name.trim() === name && birthKey(a.birth) === birthKey(birth)
       );
 
       if (targetIndex !== -1) {
@@ -862,7 +918,7 @@
         }
 
         state.registeredAttendees[targetIndex].checkedIn = true;
-        state.currentUser = { name: name, birth: birth };
+        state.currentUser = { name: name, birth: birthKey(birth) };
 
         localStorage.setItem('registeredAttendees', JSON.stringify(state.registeredAttendees));
         localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
@@ -909,8 +965,8 @@
       }
 
       const userIndex = state.registeredAttendees.findIndex(
-        a => a.name.trim() === String(state.currentUser.name).trim() && 
-             String(a.birth).trim() === String(state.currentUser.birth).trim()
+        a => a.name.trim() === String(state.currentUser.name).trim() &&
+             birthKey(a.birth) === birthKey(state.currentUser.birth)
       );
 
       if (userIndex !== -1) {
