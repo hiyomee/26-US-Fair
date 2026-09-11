@@ -400,7 +400,17 @@
   <script>
     const _SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbxUpgkbpUcqnNygHLUb63LW0sFaAOh94-AQoiA1FdRNwtq7S633UqIutdmo8okM6fNV/exec";
 
-    function sendToSheet(data) {
+    // 생년월일(birth)은 시트/응답 저장 과정에서 숫자로 변환되어 앞자리 0이 사라집니다.
+    // (예: "050915" -> "50915", "000205" -> "205") 모든 (이름, 생년월일) 비교는
+    // 반드시 이 헬퍼로 정규화한 뒤 비교해야 매칭이 깨지지 않습니다.
+    function birthKey(b) {
+      return String(b == null ? '' : b).trim().replace(/\D/g, '').padStart(6, '0');
+    }
+
+    // no-cors 응답은 본문을 읽을 수 없어 서버 오류를 감지할 수 없습니다.
+    // 전송이 조용히 실패하면 새로고침 때 상태가 사라지므로, 네트워크 오류 시
+    // 몇 차례 재시도해 유실 가능성을 줄입니다. (완전한 해결은 백엔드 CORS 필요)
+    function sendToSheet(data, attempt = 0) {
       if (!_SHEETS_API_URL || _SHEETS_API_URL.includes("YOUR_DEPLOYED_SCRIPT_URL_HERE")) return;
 
       fetch(_SHEETS_API_URL, {
@@ -408,7 +418,12 @@
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
-      }).catch(err => console.error("Sheet 전송 실패:", err));
+      }).catch(err => {
+        console.error(`Sheet 전송 실패 (시도 ${attempt + 1}):`, err);
+        if (attempt < 2) {
+          setTimeout(() => sendToSheet(data, attempt + 1), 1000 * (attempt + 1));
+        }
+      });
     }
 
     let titleClickCount = 0;
@@ -447,7 +462,10 @@
       isSubscribed: localStorage.getItem('isSubscribed') === 'true',
       questions: JSON.parse(localStorage.getItem('questions') || '[]'),
       hasSurveyed: localStorage.getItem('hasSurveyed') === 'true',
-      isNoticeAgreed: localStorage.getItem('isNoticeAgreed') === 'true'
+      isNoticeAgreed: localStorage.getItem('isNoticeAgreed') === 'true',
+      // 시트에서 내려온 전체 응답 로그. 관리자 추첨/코멘트 집계는 localStorage가 아니라
+      // 이 값을 참조해야 모든 참석자의 미션·설문·코멘트를 반영할 수 있습니다.
+      sheetResponses: []
     };
 
     window.onload = function() {
@@ -471,18 +489,48 @@
               birth: String(a.birth || '').trim()
             }));
             
+            state.sheetResponses = Array.isArray(data.responses) ? data.responses : [];
+
             if (Array.isArray(data.responses)) {
+              const me = state.currentUser;
               data.responses.forEach(resp => {
-                const target = state.registeredAttendees.find(a => 
-                  a.name.trim() === String(resp.name || '').trim() && 
-                  String(a.birth).trim() === String(resp.birth || '').trim()
+                const target = state.registeredAttendees.find(a =>
+                  a.name.trim() === String(resp.name || '').trim() &&
+                  birthKey(a.birth) === birthKey(resp.birth)
                 );
                 if (target) {
                   if (resp.type === 'checkin') target.checkedIn = true;
                   if (resp.type === 'networking') target.networking = (resp.detail === '참석');
                 }
+
+                // 미션/설문/구독 상태는 그동안 localStorage에만 저장되어 기기를 바꾸면
+                // 초기화됐습니다. 시트에 기록된 본인 응답을 다시 반영해 기기 간에도 유지합니다.
+                if (me && resp.name && me.name.trim() === String(resp.name).trim()
+                    && birthKey(me.birth) === birthKey(resp.birth)) {
+                  if (resp.type === 'mission_subscribe') {
+                    state.isSubscribed = true;
+                    localStorage.setItem('isSubscribed', 'true');
+                  }
+                  if (resp.type === 'survey') {
+                    state.hasSurveyed = true;
+                    localStorage.setItem('hasSurveyed', 'true');
+                  }
+                  if (resp.type === 'mission_poster') {
+                    const m = String(resp.detail || '').match(/포스터\s*(\d+)/);
+                    const pid = m ? Number(m[1]) : null;
+                    if (pid && !state.completedPosters.includes(pid)) {
+                      state.completedPosters.push(pid);
+                      localStorage.setItem('completedPosters', JSON.stringify(state.completedPosters));
+                    }
+                  }
+                }
               });
             }
+
+            // 생년월일이 수정되면(예: 오등록 정정) localStorage의 currentUser와
+            // 명단이 더 이상 일치하지 않아 로그아웃된 것처럼 보입니다.
+            // 이름이 유일하게 일치하면 명단의 생년월일로 currentUser를 갱신합니다.
+            migrateCurrentUser();
           }
           updateUI();
         })
@@ -579,9 +627,22 @@
     function getCurrentUserData() {
       if (!state.currentUser) return null;
       return state.registeredAttendees.find(
-        a => a.name.trim() === String(state.currentUser.name).trim() && 
-             String(a.birth).trim() === String(state.currentUser.birth).trim()
+        a => a.name.trim() === String(state.currentUser.name).trim() &&
+             birthKey(a.birth) === birthKey(state.currentUser.birth)
       );
+    }
+
+    // 명단의 생년월일이 정정되면 저장된 currentUser와 매칭이 끊깁니다.
+    // 정확히 일치하는 사람이 없고 이름이 유일하게 일치하면 명단 값으로 갱신합니다.
+    function migrateCurrentUser() {
+      if (!state.currentUser) return;
+      if (getCurrentUserData()) return; // 이미 매칭되면 그대로 둠
+      const name = String(state.currentUser.name).trim();
+      const sameName = state.registeredAttendees.filter(a => a.name.trim() === name);
+      if (sameName.length === 1) {
+        state.currentUser = { name: sameName[0].name.trim(), birth: birthKey(sameName[0].birth) };
+        localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+      }
     }
 
     function toggleNoticeAgreement() {
@@ -852,7 +913,7 @@
       }
 
       const targetIndex = state.registeredAttendees.findIndex(
-        a => a.name.trim() === name && String(a.birth).trim() === birth
+        a => a.name.trim() === name && birthKey(a.birth) === birthKey(birth)
       );
 
       if (targetIndex !== -1) {
@@ -862,7 +923,7 @@
         }
 
         state.registeredAttendees[targetIndex].checkedIn = true;
-        state.currentUser = { name: name, birth: birth };
+        state.currentUser = { name: name, birth: birthKey(birth) };
 
         localStorage.setItem('registeredAttendees', JSON.stringify(state.registeredAttendees));
         localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
@@ -909,8 +970,8 @@
       }
 
       const userIndex = state.registeredAttendees.findIndex(
-        a => a.name.trim() === String(state.currentUser.name).trim() && 
-             String(a.birth).trim() === String(state.currentUser.birth).trim()
+        a => a.name.trim() === String(state.currentUser.name).trim() &&
+             birthKey(a.birth) === birthKey(state.currentUser.birth)
       );
 
       if (userIndex !== -1) {
@@ -1029,8 +1090,23 @@
         });
         fileName = "참석자명단_체크인현황.csv";
       } else if (type === 'qna') {
-        csvContent += "등록시간,코멘트 내용\n";
-        state.questions.forEach(q => { csvContent += `"${q.time}","${q.text.replace(/"/g, '""')}"\n`; });
+        // 기존에는 관리자 기기의 localStorage(state.questions)만 내보내 다른 참석자
+        // 코멘트가 전혀 포함되지 않았습니다. 시트 응답 로그의 qna 전체를 내보냅니다.
+        csvContent += "등록시간,이름,코멘트 내용\n";
+        const qnaRows = (state.sheetResponses || []).filter(r => r.type === 'qna');
+        if (qnaRows.length === 0) {
+          // 시트 응답을 아직 불러오지 못한 경우에만 로컬 코멘트로 대체
+          state.questions.forEach(q => {
+            csvContent += `"${q.time}","","${String(q.text).replace(/"/g, '""')}"\n`;
+          });
+        } else {
+          qnaRows.forEach(r => {
+            const t = String(r.timestamp || '').replace(/"/g, '""');
+            const name = String(r.name || '').replace(/"/g, '""');
+            const text = String(r.detail || '').replace(/"/g, '""');
+            csvContent += `"${t}","${name}","${text}"\n`;
+          });
+        }
         fileName = "실시간_QA_목록.csv";
       }
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1043,7 +1119,7 @@
     function resetAllData() {
       if (confirm("모든 데이터를 초기화하시겠습니까?")) {
         localStorage.clear();
-        state = { registeredAttendees: defaultRegisteredAttendees, currentUser: null, completedPosters: [], isSubscribed: false, questions: [], hasSurveyed: false, isNoticeAgreed: false };
+        state = { registeredAttendees: defaultRegisteredAttendees, currentUser: null, completedPosters: [], isSubscribed: false, questions: [], hasSurveyed: false, isNoticeAgreed: false, sheetResponses: [] };
         alert('초기화되었습니다.');
         updateAdminUI();
       }
@@ -1052,17 +1128,35 @@
     let eligibleCandidates = [];
     let raffleTimer = null;
 
-    function openRaffleModal() {
-      const isPosterDone = state.completedPosters.length >= 4;
-      const isSubscribeDone = state.isSubscribed;
-      const isSurveyDone = state.hasSurveyed;
-
-      const isAllConditionsMet = isPosterDone && isSubscribeDone && isSurveyDone;
-
-      eligibleCandidates = state.registeredAttendees.filter(a => {
-        if (!a.checkedIn) return false;
-        return isAllConditionsMet;
+    // 특정 참석자의 미션/설문 완료 여부를 시트 응답 로그에서 재구성합니다.
+    // (기존 추첨은 관리자 기기의 localStorage 상태를 모든 참석자에 그대로 적용해
+    //  실제 완수자와 무관하게 동작했습니다.)
+    function getAttendeeProgress(a) {
+      const posters = new Set();
+      let subscribed = false, surveyed = false;
+      (state.sheetResponses || []).forEach(r => {
+        if (String(r.name || '').trim() !== a.name.trim()) return;
+        if (birthKey(r.birth) !== birthKey(a.birth)) return;
+        if (r.type === 'mission_poster') {
+          const m = String(r.detail || '').match(/포스터\s*(\d+)/);
+          if (m) posters.add(Number(m[1]));
+        }
+        if (r.type === 'mission_subscribe') subscribed = true;
+        if (r.type === 'survey') surveyed = true;
       });
+      return {
+        posterDone: posters.size >= 4,
+        subscribed,
+        surveyed,
+        allDone: posters.size >= 4 && subscribed && surveyed
+      };
+    }
+
+    function openRaffleModal() {
+      // 각 참석자별로 체크인 + 미션 2종 + 설문 완료 여부를 개별 판정합니다.
+      eligibleCandidates = state.registeredAttendees.filter(a =>
+        a.checkedIn && getAttendeeProgress(a).allDone
+      );
 
       const modal = document.getElementById('raffle-modal');
       const countText = document.getElementById('raffle-eligible-count');
